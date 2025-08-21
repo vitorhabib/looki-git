@@ -1,0 +1,277 @@
+# LOOKI-GIT.GIT - Repositório Completo
+# Sistema de Gestão de Agências - Frontend React/Vite
+# =====================================================
+
+## INFORMAÇÕES DO PROJETO
+Nome: Looki Frontend
+Tipo: Sistema de Gestão de Agências
+Tecnologia: React + Vite + TypeScript
+Backend: Supabase
+Estilização: Tailwind CSS + Radix UI
+Containerização: Docker (Porta 9090)
+
+## ESTRUTURA DO REPOSITÓRIO
+├── .dockerignore
+├── .env
+├── .env.example
+├── .gitattributes
+├── .gitignore
+├── .vscode/
+├── Dockerfile
+├── README-Docker.md
+├── README.md
+├── SUPABASE_SETUP.md
+├── docker-compose.yml
+├── docker-compose.prod.yml
+├── deploy.sh
+├── nginx.conf
+├── package.json
+├── package-lock.json
+├── bun.lockb
+├── components.json
+├── tailwind.config.ts
+├── tsconfig.json
+├── tsconfig.app.json
+├── tsconfig.node.json
+├── vite.config.ts
+├── eslint.config.js
+├── postcss.config.js
+├── index.html
+├── public/
+│   ├── favicon.ico
+│   ├── placeholder.svg
+│   └── robots.txt
+├── src/
+│   ├── App.css
+│   ├── App.tsx
+│   ├── main.tsx
+│   ├── index.css
+│   ├── vite-env.d.ts
+│   ├── components/
+│   │   ├── ProtectedRoute.tsx
+│   │   ├── admin/
+│   │   ├── dashboard/
+│   │   ├── master-admin/
+│   │   ├── modals/
+│   │   ├── organization/
+│   │   └── ui/
+│   ├── contexts/
+│   │   └── AuthContext.tsx
+│   ├── hooks/
+│   │   ├── use-mobile.tsx
+│   │   ├── use-toast.ts
+│   │   ├── useCategories.ts
+│   │   ├── useClients.ts
+│   │   ├── useExpenses.ts
+│   │   ├── useInvoices.ts
+│   │   ├── useNotifications.ts
+│   │   ├── useOrganizations.ts
+│   │   └── useServices.ts
+│   ├── lib/
+│   │   ├── supabase.ts
+│   │   └── utils.ts
+│   └── pages/
+│       ├── Categories.tsx
+│       ├── ClientDetail.tsx
+│       ├── ClientForm.tsx
+│       ├── Clients.tsx
+│       ├── Expenses.tsx
+│       ├── Forecast.tsx
+│       ├── Index.tsx
+│       ├── InvoiceDetail.tsx
+│       ├── Invoices.tsx
+│       ├── Login.tsx
+│       ├── MasterAdmin.tsx
+│       ├── NotFound.tsx
+│       ├── Notifications.tsx
+│       ├── OrgSelect.tsx
+│       ├── Profile.tsx
+│       ├── PublicCheckout.tsx
+│       ├── Register.tsx
+│       ├── Reports.tsx
+│       └── Settings.tsx
+└── supabase/
+    ├── README.md
+    ├── .temp/
+    ├── functions/
+    │   ├── README.md
+    │   ├── deno.json
+    │   ├── tsconfig.json
+    │   ├── types.d.ts
+    │   └── generate-recurring/
+    └── migrations/
+        ├── 001_create_categories_table.sql
+        ├── 002_create_expenses_table.sql
+        ├── 003_fix_sample_expenses.sql
+        ├── 004_create_organizations_structure.sql
+        ├── 005_add_organization_contact_fields.sql
+        ├── 005_create_avatars_storage.sql
+        ├── 005_create_billing_tables.sql
+        ├── 006_add_billing_rls_policies.sql
+        ├── 007_add_discount_amount_column.sql
+        ├── 007_create_master_admin_structure.sql
+        ├── 008_add_recurring_invoices.sql
+        ├── 008_create_audit_system.sql
+        ├── 009_add_invoice_title.sql
+        ├── 009_debug_functions.sql
+        ├── 010_add_recurring_expenses.sql
+        ├── 010_fix_expenses_rls_policies.sql
+        ├── 011_add_category_to_invoices.sql
+        ├── 011_fix_categories_rls_policies.sql
+        ├── 012_verify_and_fix_policies.sql
+        ├── 013_create_services_tables.sql
+        ├── 014_add_services_rls_policies.sql
+        └── 015_add_client_status.sql
+
+## DEPENDÊNCIAS PRINCIPAIS
+### Produção:
+- @radix-ui/* (Componentes UI)
+- @supabase/supabase-js (Backend)
+- @tanstack/react-query (Estado/Cache)
+- react, react-dom (Framework)
+- react-hook-form (Formulários)
+- tailwindcss (Estilização)
+- lucide-react (Ícones)
+- date-fns (Manipulação de datas)
+- recharts (Gráficos)
+- zod (Validação)
+
+### Desenvolvimento:
+- @types/node, @types/react
+- @vitejs/plugin-react
+- autoprefixer
+- eslint
+- postcss
+- typescript
+- vite
+
+## FUNCIONALIDADES
+✅ Sistema de Autenticação
+✅ Gestão de Organizações
+✅ Gestão de Clientes
+✅ Sistema de Faturas
+✅ Controle de Despesas
+✅ Categorização
+✅ Relatórios e Dashboards
+✅ Sistema de Notificações
+✅ Perfil de Usuário
+✅ Checkout Público
+✅ Admin Master
+✅ Previsões Financeiras
+
+## CONFIGURAÇÃO DOCKER
+### Desenvolvimento:
+```bash
+docker-compose up --build
+# Acesso: http://localhost:9090
+```
+
+### Produção:
+```bash
+docker-compose -f docker-compose.prod.yml up --build -d
+# Script automatizado: ./deploy.sh prod
+```
+
+## CONFIGURAÇÃO SUPABASE
+- Database: PostgreSQL
+- Auth: Supabase Auth
+- Storage: Avatars
+- RLS: Row Level Security
+- Edge Functions: Recurring invoices
+- Migrations: 15 arquivos SQL
+
+## COMANDOS GIT PARA INICIALIZAÇÃO
+```bash
+# Inicializar repositório
+git init
+
+# Adicionar arquivos
+git add .
+
+# Primeiro commit
+git commit -m "Initial commit: Looki Frontend - Sistema de Gestão de Agências
+
+- Frontend React/Vite com TypeScript
+- Integração Supabase completa
+- Docker configurado (porta 9090)
+- Sistema de autenticação
+- Gestão de organizações e clientes
+- Sistema de faturas e despesas
+- Dashboard e relatórios
+- Componentes UI com Radix UI
+- Estilização Tailwind CSS
+- Migrações de banco completas
+- Edge functions configuradas"
+
+# Adicionar repositório remoto
+git remote add origin https://github.com/seu-usuario/looki-git.git
+
+# Push inicial
+git branch -M main
+git push -u origin main
+```
+
+## VARIÁVEIS DE AMBIENTE
+```env
+# Supabase
+VITE_SUPABASE_URL=sua_url_supabase
+VITE_SUPABASE_ANON_KEY=sua_chave_supabase
+
+# Aplicação
+VITE_APP_NAME=Looki
+VITE_APP_VERSION=1.0.0
+
+# API
+VITE_API_URL=https://api.seudominio.com
+```
+
+## SCRIPTS DISPONÍVEIS
+- `npm run dev` - Servidor de desenvolvimento
+- `npm run build` - Build para produção
+- `npm run lint` - Verificação de código
+- `npm run preview` - Preview do build
+
+## DEPLOY VPS
+1. Instalar Docker no VPS
+2. Clonar repositório
+3. Configurar variáveis de ambiente
+4. Executar: `./deploy.sh prod`
+5. Configurar SSL/HTTPS
+6. Configurar domínio
+
+## MONITORAMENTO
+- Health checks configurados
+- Logs estruturados
+- Métricas de performance
+- Backup automático
+
+## SEGURANÇA
+- RLS policies implementadas
+- Autenticação JWT
+- CORS configurado
+- Headers de segurança
+- Validação de dados
+
+## AUTOR
+Projeto: Sistema Looki
+Tipo: Gestão de Agências
+Data: 2024
+Versão: 1.0.0
+
+## STATUS
+✅ Frontend completo
+✅ Backend Supabase
+✅ Docker configurado
+✅ Migrações aplicadas
+✅ Componentes UI
+✅ Autenticação
+✅ Gestão completa
+✅ Relatórios
+✅ Deploy ready
+
+# FIM DO ARQUIVO LOOKI-GIT.GIT
+# ===================================
+# Este arquivo contém toda a estrutura e informações
+# necessárias para reconstruir o projeto Looki
+# Sistema completo de gestão de agências
+# Pronto para deploy e uso em produção
