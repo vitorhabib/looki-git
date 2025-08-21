@@ -35,8 +35,7 @@ const Expenses = () => {
   const { expensesList, createExpense, updateExpense, deleteExpense, offlineQueueCount, syncOfflineExpenses, loading } = useExpenses(organizationId);
   const { expenseCategories } = useCategories(organizationId);
   const { toast } = useToast();
-  const [showDebugLogs, setShowDebugLogs] = useState(false);
-  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+
   const [expenseStats, setExpenseStats] = useState({
     currentMonthTotal: 0,
     previousMonthTotal: 0,
@@ -61,12 +60,7 @@ const Expenses = () => {
     recurring_end_date: ''
   });
 
-  // Debug logging function
-  const addDebugLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const logEntry = `[${timestamp}] ${message}`;
-    setDebugLogs(prev => [logEntry, ...prev.slice(0, 19)]); // Keep last 20 logs
-  };
+
 
   const calculateStats = () => {
     const now = new Date();
@@ -147,7 +141,7 @@ const Expenses = () => {
   };
 
   const handleEditExpense = (expense: any) => {
-    addDebugLog(`✏️ Editando despesa: ${expense.title}`);
+
     setFormData({
       title: expense.title,
       description: expense.description || '',
@@ -166,7 +160,7 @@ const Expenses = () => {
   };
 
   const handleCancelEdit = () => {
-    addDebugLog('❌ Edição cancelada - formulário resetado');
+
     setFormData({
       title: "",
       description: "",
@@ -186,31 +180,24 @@ const Expenses = () => {
 
   const handleDeleteExpense = async (expenseId: string, expenseTitle: string) => {
     if (window.confirm(`Tem certeza que deseja excluir a despesa "${expenseTitle}"?`)) {
-      addDebugLog(`🗑️ Excluindo despesa: ${expenseTitle}`);
       const success = await deleteExpense(expenseId, expenseTitle);
       if (success) {
-        addDebugLog('✅ Despesa excluída com sucesso');
         toast({
           title: "Despesa excluída",
           description: "A despesa foi excluída com sucesso.",
         });
-      } else {
-        addDebugLog(`❌ Erro ao excluir despesa: ${expenseTitle}`);
       }
     }
   };
 
   const handleMarkAsPaid = async (expenseId: string) => {
-    addDebugLog(`💰 Marcando despesa como paga: ${expenseId}`);
     const success = await updateExpense(expenseId, { status: 'paid' });
     if (success) {
-      addDebugLog('✅ Despesa marcada como paga com sucesso');
       toast({
         title: "Despesa atualizada",
         description: "A despesa foi marcada como paga.",
       });
     } else {
-      addDebugLog(`❌ Erro ao marcar despesa como paga: ${expenseId}`);
       toast({
         title: "Erro",
         description: "Não foi possível marcar a despesa como paga.",
@@ -266,15 +253,12 @@ const Expenses = () => {
     try {
       let result;
       if (editingExpense) {
-        addDebugLog(`🔄 Atualizando despesa: ${formData.title} - R$ ${formData.amount}`);
         result = await updateExpense(editingExpense, expenseData);
       } else {
-        addDebugLog(`➕ Criando nova despesa: ${formData.title} - R$ ${formData.amount}`);
         result = await createExpense(expenseData);
       }
 
       if (result) {
-        addDebugLog(editingExpense ? '✅ Despesa atualizada com sucesso' : '✅ Despesa criada com sucesso');
         toast({
           title: editingExpense ? "Despesa atualizada" : "Despesa criada",
           description: editingExpense ? "A despesa foi atualizada com sucesso." : "A despesa foi criada com sucesso.",
@@ -295,10 +279,8 @@ const Expenses = () => {
         });
         setIsDialogOpen(false);
         setEditingExpense(null);
-        addDebugLog('🔄 Formulário resetado');
       }
     } catch (error) {
-      addDebugLog(`❌ Erro ao salvar despesa: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
       toast({
         title: "Erro",
         description: "Ocorreu um erro ao salvar a despesa. Tente novamente.",
@@ -326,7 +308,6 @@ const Expenses = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    addDebugLog('🔄 Iniciando sincronização offline...');
                     syncOfflineExpenses();
                   }}
                 >
@@ -334,13 +315,7 @@ const Expenses = () => {
                 </Button>
               </div>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowDebugLogs(!showDebugLogs)}
-            >
-              {showDebugLogs ? '🔍 Ocultar Logs' : '🔍 Ver Logs'}
-            </Button>
+
             <Button variant="default" onClick={handleOpenDialog}>
               <Plus className="mr-2 h-4 w-4" />
               Nova Despesa
@@ -498,43 +473,7 @@ const Expenses = () => {
           )}
         </Card>
 
-        {/* Debug Logs Section */}
-        {showDebugLogs && (
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="flex items-center gap-2">
-                  🔍 Debug Logs
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    Status: {navigator.onLine ? '🟢 Online' : '🔴 Offline'}
-                  </span>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => setDebugLogs([])}
-                  >
-                    Limpar
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-gray-900 text-green-400 rounded p-3 max-h-60 overflow-y-auto font-mono text-sm">
-                {debugLogs.length === 0 ? (
-                  <p className="text-gray-500">Nenhum log ainda...</p>
-                ) : (
-                  debugLogs.map((log, index) => (
-                    <div key={index} className="mb-1">
-                      {log}
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+
 
         {/* Dialog for Add Expense */}
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
