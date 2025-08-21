@@ -1,0 +1,87 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="cardGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.95" />
+      <stop offset="100%" style="stop-color:#f8fafc;stop-opacity:0.95" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="600" fill="url(#bgGradient)"/>
+  
+  <!-- Main Card -->
+  <rect x="50" y="50" width="700" height="500" rx="20" fill="url(#cardGradient)" stroke="#e2e8f0" stroke-width="2"/>
+  
+  <!-- Header -->
+  <rect x="70" y="70" width="660" height="80" rx="10" fill="#1e293b" opacity="0.9"/>
+  
+  <!-- Logo/Title -->
+  <text x="400" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#ffffff">LOOKI FRONTEND</text>
+  
+  <!-- Subtitle -->
+  <text x="400" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#64748b">Sistema de Gestão de Agências - Pronto para VPS</text>
+  
+  <!-- Tech Stack Icons -->
+  <g transform="translate(100, 220)">
+    <!-- React -->
+    <circle cx="50" cy="30" r="25" fill="#61dafb" opacity="0.8"/>
+    <text x="50" y="36" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#ffffff">React</text>
+    
+    <!-- TypeScript -->
+    <rect x="125" y="5" width="50" height="50" rx="8" fill="#3178c6" opacity="0.8"/>
+    <text x="150" y="36" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#ffffff">TS</text>
+    
+    <!-- Vite -->
+    <polygon points="225,5 275,5 260,30 250,55 240,30" fill="#646cff" opacity="0.8"/>
+    <text x="250" y="36" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#ffffff">Vite</text>
+    
+    <!-- Docker -->
+    <rect x="325" y="5" width="50" height="50" rx="8" fill="#2496ed" opacity="0.8"/>
+    <text x="350" y="36" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#ffffff">Docker</text>
+    
+    <!-- Supabase -->
+    <circle cx="450" cy="30" r="25" fill="#3ecf8e" opacity="0.8"/>
+    <text x="450" y="36" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#ffffff">Supabase</text>
+    
+    <!-- Nginx -->
+    <rect x="525" y="5" width="50" height="50" rx="8" fill="#009639" opacity="0.8"/>
+    <text x="550" y="36" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#ffffff">Nginx</text>
+  </g>
+  
+  <!-- Features List -->
+  <g transform="translate(100, 320)">
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#1e293b">✅ Recursos Implementados:</text>
+    
+    <text x="20" y="30" font-family="Arial, sans-serif" font-size="14" fill="#475569">🐳 Containerização completa com Docker</text>
+    <text x="20" y="55" font-family="Arial, sans-serif" font-size="14" fill="#475569">🔒 Configuração SSL/HTTPS pronta</text>
+    <text x="20" y="80" font-family="Arial, sans-serif" font-size="14" fill="#475569">📊 Monitoramento e logs automáticos</text>
+    <text x="20" y="105" font-family="Arial, sans-serif" font-size="14" fill="#475569">💾 Sistema de backup automatizado</text>
+    <text x="20" y="130" font-family="Arial, sans-serif" font-size="14" fill="#475569">🚀 Deploy automatizado para VPS</text>
+    <text x="20" y="155" font-family="Arial, sans-serif" font-size="14" fill="#475569">⚡ Performance otimizada para produção</text>
+  </g>
+  
+  <!-- Port Info -->
+  <rect x="580" y="320" width="150" height="60" rx="10" fill="#f59e0b" opacity="0.9"/>
+  <text x="655" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#ffffff">PORTA</text>
+  <text x="655" y="365" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff">9090</text>
+  
+  <!-- Status -->
+  <rect x="580" y="400" width="150" height="40" rx="10" fill="#10b981" opacity="0.9"/>
+  <text x="655" y="425" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#ffffff">PRONTO PARA VPS</text>
+  
+  <!-- Footer -->
+  <text x="400" y="520" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">Gestão de Agências • React + Vite + TypeScript • Docker Ready</text>
+  
+  <!-- Decorative elements -->
+  <circle cx="720" cy="120" r="3" fill="#f59e0b" opacity="0.6"/>
+  <circle cx="740" cy="140" r="2" fill="#10b981" opacity="0.6"/>
+  <circle cx="760" cy="100" r="4" fill="#3b82f6" opacity="0.6"/>
+  
+  <circle cx="80" cy="480" r="3" fill="#f59e0b" opacity="0.6"/>
+  <circle cx="60" cy="500" r="2" fill="#10b981" opacity="0.6"/>
+  <circle cx="40" cy="460" r="4" fill="#3b82f6" opacity="0.6"/>
+</svg>

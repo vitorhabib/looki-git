@@ -6,22 +6,25 @@ FROM node:18-alpine AS builder
 # Instalar dependências de sistema necessárias
 RUN apk add --no-cache git python3 make g++
 
-# Criar usuário não-root para segurança
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
-
 # Definir diretório de trabalho
 WORKDIR /app
 
 # Copiar arquivos de dependências primeiro (para cache do Docker)
-COPY package*.json ./
-COPY bun.lockb ./
+COPY package.json package-lock.json ./
 
-# Instalar dependências com otimizações
-RUN npm ci --only=production --silent --no-audit --no-fund
+# Instalar todas as dependências (incluindo devDependencies para build)
+RUN npm ci --silent --no-audit --no-fund
 
-# Copiar código fonte
-COPY . .
+# Copiar código fonte necessário para build
+COPY src ./src
+COPY public ./public
+COPY index.html ./
+COPY vite.config.ts ./
+COPY tsconfig.json ./
+COPY tsconfig.app.json ./
+COPY tsconfig.node.json ./
+COPY tailwind.config.ts ./
+COPY postcss.config.js ./
 
 # Definir variáveis de ambiente para build
 ENV NODE_ENV=production
@@ -30,9 +33,6 @@ ENV INLINE_RUNTIME_CHUNK=false
 
 # Build da aplicação para produção
 RUN npm run build
-
-# Remover arquivos desnecessários
-RUN rm -rf node_modules src public *.json *.js *.ts *.md
 
 # Stage 2: Servidor Nginx otimizado para VPS
 FROM nginx:1.25-alpine
