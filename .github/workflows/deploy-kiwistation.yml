@@ -1,0 +1,104 @@
+name: Deploy to server.kiwistation.com.br
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Create production environment file
+      run: |
+        cat > .env.production << EOF
+        # Ambiente de produção
+        NODE_ENV=production
+        
+        # Configurações do Supabase
+        VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        
+        # URL da aplicação
+        VITE_APP_URL=http://server.kiwistation.com.br
+        
+        # Configurações de API
+        VITE_API_TIMEOUT=30000
+        VITE_API_RETRIES=3
+        VITE_ENABLE_CACHE=true
+        EOF
+        
+    - name: Build application
+      run: npm run build
+      
+    - name: Create deployment package
+      run: |
+        cd dist
+        tar -czf ../deploy.tar.gz .
+        cd ..
+        
+    - name: Setup SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+        
+    - name: Deploy to server
+      run: |
+        # Upload deployment package
+        scp deploy.tar.gz ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:/tmp/
+        
+        # Execute deployment on server
+        ssh ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
+          # Create backup
+          sudo mkdir -p /var/www/looki-frontend-backup
+          sudo cp -r /var/www/looki-frontend/dist /var/www/looki-frontend-backup/dist-$(date +%Y%m%d-%H%M%S) 2>/dev/null || true
+          
+          # Prepare deployment directory
+          sudo mkdir -p /var/www/looki-frontend/dist
+          sudo rm -rf /var/www/looki-frontend/dist/*
+          
+          # Extract new files
+          cd /var/www/looki-frontend/dist
+          sudo tar -xzf /tmp/deploy.tar.gz
+          
+          # Set permissions
+          sudo chown -R www-data:www-data /var/www/looki-frontend
+          sudo chmod -R 755 /var/www/looki-frontend
+          
+          # Clean up
+          rm -f /tmp/deploy.tar.gz
+          
+          # Test and reload nginx
+          sudo nginx -t && sudo systemctl reload nginx
+        EOF
+        
+    - name: Verify deployment
+      run: |
+        sleep 10
+        if curl -s -o /dev/null -w "%{http_code}" http://server.kiwistation.com.br | grep -q "200\|301\|302"; then
+          echo "✅ Deployment successful! Site is responding."
+        else
+          echo "❌ Deployment may have failed. Site is not responding."
+          exit 1
+        fi
+        
+    - name: Cleanup
+      if: always()
+      run: |
+        rm -f deploy.tar.gz
+        rm -f ~/.ssh/id_rsa

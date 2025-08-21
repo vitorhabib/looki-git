@@ -8,21 +8,21 @@ Tipo: Sistema de Gestão de Agências
 Tecnologia: React + Vite + TypeScript
 Backend: Supabase
 Estilização: Tailwind CSS + Radix UI
-Containerização: Docker (Porta 9090)
+Deploy: Ubuntu Server (Porta 80)
 
 ## ESTRUTURA DO REPOSITÓRIO
-├── .dockerignore
 ├── .env
 ├── .env.example
+├── .env.production
 ├── .gitattributes
 ├── .gitignore
+├── .github/
+│   └── workflows/
+│       └── deploy-kiwistation.yml
 ├── .vscode/
-├── Dockerfile
-├── README-Docker.md
 ├── README.md
 ├── SUPABASE_SETUP.md
-├── docker-compose.yml
-├── docker-compose.prod.yml
+├── GUIA-INSTALACAO-VPS.md
 ├── deploy.sh
 ├── nginx.conf
 ├── package.json
@@ -159,17 +159,19 @@ Containerização: Docker (Porta 9090)
 ✅ Admin Master
 ✅ Previsões Financeiras
 
-## CONFIGURAÇÃO DOCKER
+## CONFIGURAÇÃO DE DEPLOY
 ### Desenvolvimento:
 ```bash
-docker-compose up --build
-# Acesso: http://localhost:9090
+npm install
+npm run dev
+# Acesso: http://localhost:8080
 ```
 
 ### Produção:
 ```bash
-docker-compose -f docker-compose.prod.yml up --build -d
-# Script automatizado: ./deploy.sh prod
+npm run build
+# Deploy: ./deploy-kiwistation.sh
+# GitHub Actions: Automático via push
 ```
 
 ## CONFIGURAÇÃO SUPABASE
@@ -193,7 +195,7 @@ git commit -m "Initial commit: Looki Frontend - Sistema de Gestão de Agências
 
 - Frontend React/Vite com TypeScript
 - Integração Supabase completa
-- Docker configurado (porta 9090)
+- Deploy Ubuntu configurado (porta 80)
 - Sistema de autenticação
 - Gestão de organizações e clientes
 - Sistema de faturas e despesas
@@ -232,7 +234,7 @@ VITE_API_URL=https://api.seudominio.com
 - `npm run preview` - Preview do build
 
 ## DEPLOY VPS
-1. Instalar Docker no VPS
+1. Configurar servidor Ubuntu
 2. Clonar repositório
 3. Configurar variáveis de ambiente
 4. Executar: `./deploy.sh prod`
@@ -261,13 +263,13 @@ Versão: 1.0.0
 ## STATUS
 ✅ Frontend completo
 ✅ Backend Supabase
-✅ Docker configurado
+✅ Deploy Ubuntu configurado
 ✅ Migrações aplicadas
 ✅ Componentes UI
 ✅ Autenticação
 ✅ Gestão completa
 ✅ Relatórios
-✅ Deploy ready
+✅ GitHub Actions ready
 
 # FIM DO ARQUIVO LOOKI-GIT.GIT
 # ===================================
