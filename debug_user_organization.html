@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Associação Usuário-Organização</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Debug - Associação Usuário-Organização</h1>
+    <div id="output"></div>
+    <button onclick="testUserOrganization()">Testar Associação</button>
+    
+    <script>
+        const supabaseUrl = 'https://jjqhgvnzjwkhsrebcjvn.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcWhndm56andraHNyZWJjanZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0MTEyOTMsImV4cCI6MjA2Njk4NzI5M30.3lQZZ1l0umn1PWtS7EcoFvkZBgB9pZcqYZg92LhhXhw'
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+        
+        function log(message) {
+            const output = document.getElementById('output')
+            output.innerHTML += '<p>' + new Date().toLocaleTimeString() + ': ' + message + '</p>'
+            console.log(message)
+        }
+        
+        async function testUserOrganization() {
+            try {
+                log('🔍 Iniciando teste de associação usuário-organização...')
+                
+                // Verificar autenticação
+                const { data: { user }, error: authError } = await supabase.auth.getUser()
+                if (authError || !user) {
+                    log('❌ Usuário não autenticado: ' + (authError?.message || 'Sem usuário'))
+                    return
+                }
+                
+                log('✅ Usuário autenticado: ' + user.email + ' (ID: ' + user.id + ')')
+                
+                // Verificar associações do usuário
+                const { data: userOrgs, error: userOrgError } = await supabase
+                    .from('user_organizations')
+                    .select(`
+                        *,
+                        organizations!inner(*)
+                    `)
+                    .eq('user_id', user.id)
+                
+                if (userOrgError) {
+                    log('❌ Erro ao buscar associações: ' + userOrgError.message)
+                    log('❌ Detalhes: ' + JSON.stringify(userOrgError, null, 2))
+                    return
+                }
+                
+                if (!userOrgs || userOrgs.length === 0) {
+                    log('❌ Nenhuma associação encontrada para o usuário')
+                    
+                    // Verificar se existem organizações
+                    const { data: allOrgs, error: allOrgsError } = await supabase
+                        .from('organizations')
+                        .select('*')
+                    
+                    if (allOrgsError) {
+                        log('❌ Erro ao buscar organizações: ' + allOrgsError.message)
+                    } else {
+                        log('📊 Total de organizações no sistema: ' + (allOrgs?.length || 0))
+                        if (allOrgs && allOrgs.length > 0) {
+                            log('📋 Organizações disponíveis:')
+                            allOrgs.forEach((org, index) => {
+                                log(`  ${index + 1}. ${org.name} (ID: ${org.id})`)
+                            })
+                        }
+                    }
+                    return
+                }
+                
+                log('✅ Associações encontradas: ' + userOrgs.length)
+                userOrgs.forEach((assoc, index) => {
+                    log(`📋 ${index + 1}. Organização: ${assoc.organizations.name} (ID: ${assoc.organization_id})`)
+                    log(`    Role: ${assoc.role}, Criado em: ${assoc.created_at}`)
+                })
+                
+                // Testar política RLS diretamente
+                const testOrgId = userOrgs[0].organization_id
+                log('🧪 Testando política RLS para organização: ' + testOrgId)
+                
+                // Verificar se consegue inserir uma despesa de teste
+                const testExpense = {
+                    title: 'Teste RLS - ' + new Date().toLocaleString(),
+                    description: 'Teste de política RLS',
+                    amount: 1.00,
+                    organization_id: testOrgId,
+                    expense_date: new Date().toISOString().split('T')[0],
+                    payment_method: 'cash',
+                    status: 'pending'
+                }
+                
+                log('💰 Tentando inserir despesa de teste...')
+                const { data: insertResult, error: insertError } = await supabase
+                    .from('expenses')
+                    .insert([testExpense])
+                    .select()
+                    .single()
+                
+                if (insertError) {
+                    log('❌ Erro ao inserir despesa: ' + insertError.message)
+                    log('❌ Código do erro: ' + insertError.code)
+                    log('❌ Detalhes: ' + JSON.stringify(insertError, null, 2))
+                    
+                    // Verificar se é problema de RLS
+                    if (insertError.code === '42501' || insertError.message.includes('policy')) {
+                        log('🚨 PROBLEMA DE POLÍTICA RLS DETECTADO!')
+                        
+                        // Testar consulta direta na tabela user_organizations
+                        const { data: directCheck, error: directError } = await supabase
+                            .from('user_organizations')
+                            .select('organization_id')
+                            .eq('user_id', user.id)
+                            .eq('organization_id', testOrgId)
+                        
+                        if (directError) {
+                            log('❌ Erro na verificação direta: ' + directError.message)
+                        } else if (directCheck && directCheck.length > 0) {
+                            log('✅ Associação confirmada na verificação direta')
+                            log('🔍 Problema pode estar na política RLS ou na função auth.uid()')
+                        } else {
+                            log('❌ Associação não encontrada na verificação direta')
+                        }
+                    }
+                } else {
+                    log('✅ Despesa inserida com sucesso!')
+                    log('📋 Dados: ' + JSON.stringify(insertResult, null, 2))
+                    
+                    // Limpar a despesa de teste
+                    await supabase.from('expenses').delete().eq('id', insertResult.id)
+                    log('🧹 Despesa de teste removida')
+                }
+                
+                // Pular teste da função auth.uid() por enquanto
+                log('ℹ️ Pulando teste da função get_current_user_id (não implementada ainda)')
+                log('🔑 ID do usuário atual: ' + user.id)
+                
+                // Testar política RLS diretamente com uma query simples
+                log('🧪 Testando se o usuário pode ver suas próprias associações...')
+                const { data: selfCheck, error: selfError } = await supabase
+                    .from('user_organizations')
+                    .select('*')
+                    .limit(1)
+                
+                if (selfError) {
+                    log('❌ Erro ao verificar associações próprias: ' + selfError.message)
+                    log('🚨 Isso indica problema nas políticas RLS da tabela user_organizations')
+                } else {
+                    log('✅ Usuário consegue ver suas associações (RLS funcionando)')
+                }
+                
+            } catch (error) {
+                log('❌ Erro geral: ' + error.message)
+                console.error('Erro completo:', error)
+            }
+        }
+        
+        // Executar teste automaticamente
+        window.addEventListener('load', () => {
+            setTimeout(testUserOrganization, 1000)
+        })
+    </script>
+</body>
+</html>

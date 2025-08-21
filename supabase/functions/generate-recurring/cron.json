@@ -1,0 +1,5 @@
+{
+  "schedule": "0 6 * * *",
+  "description": "Executa diariamente às 6:00 AM para gerar faturas e despesas recorrentes",
+  "timezone": "America/Sao_Paulo"
+}

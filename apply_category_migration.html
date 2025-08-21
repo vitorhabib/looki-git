@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplicar Migração de Categoria</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Aplicar Migração de Categoria para Faturas</h1>
+    <button onclick="applyMigration()">Aplicar Migração</button>
+    <div id="result"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://jjqhgvnzjwkhsrebcjvn.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcWhndm56andraHNyZWJjanZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0MTEyOTMsImV4cCI6MjA2Njk4NzI5M30.3lQZZ1l0umn1PWtS7EcoFvkZBgB9pZcqYZg92LhhXhw';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        async function applyMigration() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Aplicando migração...';
+            
+            try {
+                // Verificar se a coluna já existe
+                const { data: columns, error: checkError } = await supabase
+                    .from('information_schema.columns')
+                    .select('column_name')
+                    .eq('table_name', 'invoices')
+                    .eq('column_name', 'category_id');
+                
+                if (checkError) {
+                    console.error('Erro ao verificar coluna:', checkError);
+                    resultDiv.innerHTML = `<p style="color: red;">Erro ao verificar coluna: ${checkError.message}</p>`;
+                    return;
+                }
+                
+                if (columns && columns.length > 0) {
+                    resultDiv.innerHTML = '<p style="color: green;">✅ Coluna category_id já existe na tabela invoices!</p>';
+                    return;
+                }
+                
+                // Aplicar a migração usando RPC (se disponível)
+                const { data, error } = await supabase.rpc('exec_sql', {
+                    sql: `
+                        ALTER TABLE invoices ADD COLUMN IF NOT EXISTS category_id UUID REFERENCES categories(id) ON DELETE SET NULL;
+                        CREATE INDEX IF NOT EXISTS idx_invoices_category_id ON invoices(category_id);
+                        COMMENT ON COLUMN invoices.category_id IS 'ID da categoria de receita associada à fatura';
+                    `
+                });
+                
+                if (error) {
+                    console.error('Erro na migração:', error);
+                    resultDiv.innerHTML = `<p style="color: red;">❌ Erro na migração: ${error.message}</p><p>Você precisa aplicar a migração manualmente no painel do Supabase.</p>`;
+                } else {
+                    resultDiv.innerHTML = '<p style="color: green;">✅ Migração aplicada com sucesso!</p>';
+                }
+                
+            } catch (err) {
+                console.error('Erro:', err);
+                resultDiv.innerHTML = `<p style="color: red;">❌ Erro: ${err.message}</p><p>Você precisa aplicar a migração manualmente no painel do Supabase usando o SQL:</p><pre>ALTER TABLE invoices ADD COLUMN IF NOT EXISTS category_id UUID REFERENCES categories(id) ON DELETE SET NULL;\nCREATE INDEX IF NOT EXISTS idx_invoices_category_id ON invoices(category_id);\nCOMMENT ON COLUMN invoices.category_id IS 'ID da categoria de receita associada à fatura';</pre>`;
+            }
+        }
+    </script>
+</body>
+</html>

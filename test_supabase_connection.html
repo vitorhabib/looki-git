@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Conexão Supabase</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Teste de Conexão Supabase</h1>
+    <div id="output"></div>
+    <button onclick="testConnection()">Testar Conexão</button>
+    
+    <script>
+        const supabaseUrl = 'https://jjqhgvnzjwkhsrebcjvn.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcWhndm56andraHNyZWJjanZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0MTEyOTMsImV4cCI6MjA2Njk4NzI5M30.3lQZZ1l0umn1PWtS7EcoFvkZBgB9pZcqYZg92LhhXhw'
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+        
+        function log(message) {
+            const output = document.getElementById('output')
+            output.innerHTML += '<p>' + new Date().toLocaleTimeString() + ': ' + message + '</p>'
+            console.log(message)
+        }
+        
+        async function testConnection() {
+            try {
+                log('🔍 Testando conexão com Supabase...')
+                
+                // 1. Testar autenticação
+                log('1️⃣ Verificando autenticação...')
+                const { data: { user }, error: authError } = await supabase.auth.getUser()
+                if (authError) {
+                    log('❌ Erro de autenticação: ' + authError.message)
+                } else if (user) {
+                    log('✅ Usuário autenticado: ' + user.email)
+                } else {
+                    log('⚠️ Usuário não autenticado')
+                }
+                
+                // 2. Testar query simples na tabela organizations
+                log('2️⃣ Testando query na tabela organizations...')
+                const { data: orgs, error: orgError } = await supabase
+                    .from('organizations')
+                    .select('id, name')
+                    .limit(5)
+                
+                if (orgError) {
+                    log('❌ Erro ao buscar organizações: ' + orgError.message)
+                } else {
+                    log('✅ Organizações encontradas: ' + (orgs?.length || 0))
+                    if (orgs && orgs.length > 0) {
+                        log('📋 Primeira organização: ' + JSON.stringify(orgs[0]))
+                    }
+                }
+                
+                // 3. Testar query na tabela expenses
+                log('3️⃣ Testando query na tabela expenses...')
+                const { data: expenses, error: expError } = await supabase
+                    .from('expenses')
+                    .select('id, title, amount')
+                    .limit(5)
+                
+                if (expError) {
+                    log('❌ Erro ao buscar despesas: ' + expError.message)
+                    log('❌ Código do erro: ' + expError.code)
+                    log('❌ Detalhes: ' + JSON.stringify(expError.details))
+                } else {
+                    log('✅ Despesas encontradas: ' + (expenses?.length || 0))
+                    if (expenses && expenses.length > 0) {
+                        log('📋 Primeira despesa: ' + JSON.stringify(expenses[0]))
+                    }
+                }
+                
+                // 4. Testar query na tabela user_organizations (se usuário autenticado)
+                if (user) {
+                    log('4️⃣ Testando query na tabela user_organizations...')
+                    const { data: userOrgs, error: userOrgError } = await supabase
+                        .from('user_organizations')
+                        .select('organization_id, role')
+                        .eq('user_id', user.id)
+                    
+                    if (userOrgError) {
+                        log('❌ Erro ao buscar user_organizations: ' + userOrgError.message)
+                    } else {
+                        log('✅ Associações usuário-organização: ' + (userOrgs?.length || 0))
+                        if (userOrgs && userOrgs.length > 0) {
+                            log('📋 Primeira associação: ' + JSON.stringify(userOrgs[0]))
+                        }
+                    }
+                }
+                
+                log('🏁 Teste de conexão concluído!')
+                
+            } catch (error) {
+                log('❌ Erro JavaScript: ' + error.message)
+                console.error('Erro completo:', error)
+            }
+        }
+        
+        // Auto-executar
+        window.addEventListener('load', () => {
+            setTimeout(testConnection, 1000)
+        })
+    </script>
+</body>
+</html>

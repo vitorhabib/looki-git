@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Supabase Connectivity - Looki</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Conectividade Supabase - Looki</h1>
+        <p>Este script testa a conectividade com o Supabase e identifica problemas de rede.</p>
+        
+        <button onclick="runAllTests()">🚀 Executar Todos os Testes</button>
+        <button onclick="clearResults()">🧹 Limpar Resultados</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Configuração do Supabase
+        const SUPABASE_URL = 'https://jjqhgvnzjwkhsrebcjvn.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcWhndm56andraHNyZWJjanZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0MTEyOTMsImV4cCI6MjA2Njk4NzI5M30.3lQZZ1l0umn1PWtS7EcoFvkZBgB9pZcqYZg92LhhXhw';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        function addResult(title, content, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const section = document.createElement('div');
+            section.className = `test-section ${type}`;
+            section.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${content}</pre>
+            `;
+            resultsDiv.appendChild(section);
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        async function testBasicConnectivity() {
+            try {
+                addResult('🌐 Teste 1: Conectividade Básica', 'Testando conectividade básica com Supabase...', 'info');
+                
+                // Teste de ping básico
+                const response = await fetch(SUPABASE_URL + '/rest/v1/', {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+                
+                if (response.ok) {
+                    addResult('✅ Conectividade Básica', `Status: ${response.status}\nURL acessível: ${SUPABASE_URL}`, 'success');
+                } else {
+                    addResult('❌ Conectividade Básica', `Erro HTTP: ${response.status}\nStatus Text: ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Conectividade Básica', `Erro de rede: ${error.message}\nStack: ${error.stack}`, 'error');
+            }
+        }
+        
+        async function testRPCFunction() {
+            try {
+                addResult('🔧 Teste 2: Função RPC is_master_admin', 'Testando função RPC que está falhando...', 'info');
+                
+                const { data, error } = await supabase.rpc('is_master_admin');
+                
+                if (error) {
+                    addResult('❌ Função RPC is_master_admin', `Erro: ${error.message}\nCódigo: ${error.code}\nDetalhes: ${JSON.stringify(error, null, 2)}`, 'error');
+                } else {
+                    addResult('✅ Função RPC is_master_admin', `Resultado: ${JSON.stringify(data, null, 2)}`, 'success');
+                }
+            } catch (error) {
+                addResult('❌ Função RPC is_master_admin', `Erro JavaScript: ${error.message}\nStack: ${error.stack}`, 'error');
+            }
+        }
+        
+        async function testOrganizationsTable() {
+            try {
+                addResult('📊 Teste 3: Tabela Organizations', 'Testando acesso à tabela organizations...', 'info');
+                
+                const { data, error } = await supabase
+                    .from('organizations')
+                    .select('id, name')
+                    .limit(5);
+                
+                if (error) {
+                    addResult('❌ Tabela Organizations', `Erro: ${error.message}\nCódigo: ${error.code}\nDetalhes: ${JSON.stringify(error, null, 2)}`, 'error');
+                } else {
+                    addResult('✅ Tabela Organizations', `Organizações encontradas: ${data.length}\nDados: ${JSON.stringify(data, null, 2)}`, 'success');
+                }
+            } catch (error) {
+                addResult('❌ Tabela Organizations', `Erro JavaScript: ${error.message}\nStack: ${error.stack}`, 'error');
+            }
+        }
+        
+        async function testInvoicesTable() {
+            try {
+                addResult('📋 Teste 4: Tabela Invoices', 'Testando acesso à tabela invoices...', 'info');
+                
+                const { data, error } = await supabase
+                    .from('invoices')
+                    .select('id, client_name, amount, due_date')
+                    .limit(5);
+                
+                if (error) {
+                    addResult('❌ Tabela Invoices', `Erro: ${error.message}\nCódigo: ${error.code}\nDetalhes: ${JSON.stringify(error, null, 2)}`, 'error');
+                } else {
+                    addResult('✅ Tabela Invoices', `Faturas encontradas: ${data.length}\nDados: ${JSON.stringify(data, null, 2)}`, 'success');
+                }
+            } catch (error) {
+                addResult('❌ Tabela Invoices', `Erro JavaScript: ${error.message}\nStack: ${error.stack}`, 'error');
+            }
+        }
+        
+        async function testAuthStatus() {
+            try {
+                addResult('🔐 Teste 5: Status de Autenticação', 'Verificando status de autenticação...', 'info');
+                
+                const { data: { user }, error } = await supabase.auth.getUser();
+                
+                if (error) {
+                    addResult('❌ Status de Autenticação', `Erro: ${error.message}\nDetalhes: ${JSON.stringify(error, null, 2)}`, 'error');
+                } else if (user) {
+                    addResult('✅ Status de Autenticação', `Usuário logado: ${user.email}\nID: ${user.id}\nMetadata: ${JSON.stringify(user.user_metadata, null, 2)}`, 'success');
+                } else {
+                    addResult('⚠️ Status de Autenticação', 'Nenhum usuário logado', 'info');
+                }
+            } catch (error) {
+                addResult('❌ Status de Autenticação', `Erro JavaScript: ${error.message}\nStack: ${error.stack}`, 'error');
+            }
+        }
+        
+        async function testProjectStatus() {
+            try {
+                addResult('🏗️ Teste 6: Status do Projeto', 'Verificando se o projeto Supabase está ativo...', 'info');
+                
+                // Teste direto da API REST
+                const response = await fetch(SUPABASE_URL + '/rest/v1/organizations?select=count', {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'count=exact'
+                    }
+                });
+                
+                if (response.status === 200) {
+                    const data = await response.text();
+                    addResult('✅ Status do Projeto', `Projeto ativo e respondendo\nStatus: ${response.status}\nResposta: ${data}`, 'success');
+                } else if (response.status === 503) {
+                    addResult('❌ Status do Projeto', 'Projeto pausado ou indisponível (HTTP 503)', 'error');
+                } else {
+                    addResult('⚠️ Status do Projeto', `Status HTTP: ${response.status}\nStatus Text: ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Status do Projeto', `Erro de rede: ${error.message}\nStack: ${error.stack}`, 'error');
+            }
+        }
+        
+        async function runAllTests() {
+            clearResults();
+            addResult('🚀 Iniciando Diagnóstico', 'Executando todos os testes de conectividade...', 'info');
+            
+            await testBasicConnectivity();
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay entre testes
+            
+            await testProjectStatus();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testAuthStatus();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testRPCFunction();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testOrganizationsTable();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testInvoicesTable();
+            
+            addResult('🏁 Diagnóstico Concluído', 'Todos os testes foram executados. Verifique os resultados acima.', 'info');
+        }
+    </script>
+</body>
+</html>

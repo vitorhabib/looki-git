@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Criação de Despesas</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Debug - Criação de Despesas</h1>
+    <div id="output"></div>
+    <button onclick="testExpenseCreation()">Testar Criação de Despesa</button>
+    
+    <script>
+        const supabaseUrl = 'https://jjqhgvnzjwkhsrebcjvn.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcWhndm56andraHNyZWJjanZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0MTEyOTMsImV4cCI6MjA2Njk4NzI5M30.3lQZZ1l0umn1PWtS7EcoFvkZBgB9pZcqYZg92LhhXhw'
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+        
+        function log(message) {
+            const output = document.getElementById('output')
+            output.innerHTML += '<p>' + new Date().toLocaleTimeString() + ': ' + message + '</p>'
+            console.log(message)
+        }
+        
+        async function testExpenseCreation() {
+            try {
+                log('🔍 Iniciando teste de criação de despesa...')
+                
+                // Verificar autenticação
+                const { data: { user }, error: authError } = await supabase.auth.getUser()
+                if (authError) {
+                    log('❌ Erro de autenticação: ' + authError.message)
+                    return
+                }
+                
+                if (!user) {
+                    log('❌ Usuário não autenticado')
+                    return
+                }
+                
+                log('✅ Usuário autenticado: ' + user.email)
+                
+                // Buscar organizações do usuário
+                const { data: organizations, error: orgError } = await supabase
+                    .from('user_organizations')
+                    .select(`
+                        organization_id,
+                        role,
+                        organizations!inner(*)
+                    `)
+                    .eq('user_id', user.id)
+                
+                if (orgError) {
+                    log('❌ Erro ao buscar organizações: ' + orgError.message)
+                    return
+                }
+                
+                if (!organizations || organizations.length === 0) {
+                    log('❌ Nenhuma organização encontrada para o usuário')
+                    return
+                }
+                
+                const organization = organizations[0]
+                log('✅ Organização encontrada: ' + organization.organizations.name + ' (ID: ' + organization.organization_id + ')')
+                
+                // Tentar criar uma despesa de teste
+                const testExpense = {
+                    title: 'Despesa de Teste - ' + new Date().toLocaleString(),
+                    description: 'Despesa criada para teste de debug',
+                    amount: 100.50,
+                    organization_id: organization.organization_id,
+                    expense_date: new Date().toISOString().split('T')[0],
+                    payment_method: 'credit_card',
+                    status: 'pending'
+                }
+                
+                log('📝 Tentando criar despesa: ' + JSON.stringify(testExpense, null, 2))
+                
+                const { data: expense, error: expenseError } = await supabase
+                    .from('expenses')
+                    .insert([testExpense])
+                    .select(`
+                        *,
+                        category:categories(*)
+                    `)
+                    .single()
+                
+                if (expenseError) {
+                    log('❌ Erro ao criar despesa: ' + expenseError.message)
+                    log('❌ Detalhes do erro: ' + JSON.stringify(expenseError, null, 2))
+                    return
+                }
+                
+                if (expense) {
+                    log('✅ Despesa criada com sucesso!')
+                    log('📋 Dados da despesa: ' + JSON.stringify(expense, null, 2))
+                    
+                    // Verificar se a despesa foi realmente salva
+                    const { data: savedExpense, error: fetchError } = await supabase
+                        .from('expenses')
+                        .select('*')
+                        .eq('id', expense.id)
+                        .single()
+                    
+                    if (fetchError) {
+                        log('❌ Erro ao verificar despesa salva: ' + fetchError.message)
+                    } else if (savedExpense) {
+                        log('✅ Despesa confirmada no banco de dados!')
+                    } else {
+                        log('❌ Despesa não encontrada no banco de dados')
+                    }
+                } else {
+                    log('❌ Nenhuma despesa retornada')
+                }
+                
+            } catch (error) {
+                log('❌ Erro geral: ' + error.message)
+                console.error('Erro completo:', error)
+            }
+        }
+        
+        // Executar teste automaticamente ao carregar a página
+        window.addEventListener('load', () => {
+            log('🚀 Página carregada, executando teste automático...')
+            setTimeout(testExpenseCreation, 1000)
+        })
+    </script>
+</body>
+</html>
