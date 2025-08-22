@@ -76,7 +76,7 @@ interface UseExpensesReturn {
   deleteExpense: (id: string, expenseTitle?: string) => Promise<boolean>
   searchExpenses: (searchTerm: string) => Promise<void>
   filterByCategory: (categoryId: string) => Promise<void>
-  filterByStatus: (status: 'pending' | 'paid' | 'cancelled') => Promise<void>
+  filterByStatus: (status: 'pending' | 'paid' | 'overdue') => Promise<void>
   filterByDateRange: (startDate: string, endDate: string) => Promise<void>
   getExpenseStats: () => Promise<any>
   // Novos helpers para modo offline/debug
@@ -613,7 +613,7 @@ export const useExpenses = (organizationId?: string): UseExpensesReturn => {
   }
 
   // Filtrar por status
-  const filterByStatus = async (status: 'pending' | 'paid' | 'cancelled') => {
+  const filterByStatus = async (status: 'pending' | 'paid' | 'overdue') => {
     if (!organizationId) return
 
     try {

@@ -109,7 +109,7 @@ export interface Expense {
   organization_id: string
   expense_date: string
   payment_method: string
-  status: 'pending' | 'paid' | 'cancelled'
+  status: 'pending' | 'paid' | 'overdue'
   receipt_url: string | null
   tags: string[] | null
   created_at: string
@@ -131,7 +131,7 @@ export interface CreateExpenseData {
   organization_id: string
   expense_date: string
   payment_method: string
-  status?: 'pending' | 'paid' | 'cancelled'
+  status?: 'pending' | 'paid' | 'overdue'
   receipt_url?: string
   tags?: string[]
   is_recurring?: boolean
@@ -148,7 +148,7 @@ export interface UpdateExpenseData {
   category_id?: string
   expense_date?: string
   payment_method?: string
-  status?: 'pending' | 'paid' | 'cancelled'
+  status?: 'pending' | 'paid' | 'overdue'
   receipt_url?: string
   tags?: string[]
   is_recurring?: boolean
@@ -315,7 +315,7 @@ export const expenses = {
   },
 
   // Obter despesas por status
-  getByStatus: async (organizationId: string, status: 'pending' | 'paid' | 'cancelled') => {
+  getByStatus: async (organizationId: string, status: 'pending' | 'paid' | 'overdue') => {
     const { data, error } = await supabase
       .from('expenses')
       .select(`
@@ -351,6 +351,14 @@ export const expenses = {
       .from('expenses')
       .select('amount, status, expense_date')
       .eq('organization_id', organizationId)
+    
+    return { data, error }
+  },
+
+  // Executar função para atualizar despesas vencidas
+  updateOverdueExpenses: async () => {
+    const { data, error } = await supabase
+      .rpc('update_overdue_expenses')
     
     return { data, error }
   }

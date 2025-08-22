@@ -2,7 +2,9 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
+import { ClientAvatar } from "@/components/ui/client-avatar";
+import { ClientContactInfo } from "@/components/ui/client-contact-info";
+import { ClientStats } from "@/components/ui/client-stats";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Money } from "@/components/ui/money";
@@ -88,6 +90,17 @@ export default function ClientDetail() {
   const clientRecurringServices = recurringServices.filter(service => service.client_id === id);
   const clientOneTimeServices = oneTimeServices.filter(service => service.client_id === id);
 
+  // Calcular estatísticas
+  const openInvoicesCount = clientInvoices.filter(invoice => 
+    invoice.status === 'draft' || invoice.status === 'sent'
+  ).length;
+  const overdueInvoicesCount = clientInvoices.filter(invoice => 
+    invoice.status === 'overdue' || 
+    ((invoice.status === 'draft' || invoice.status === 'sent') && new Date(invoice.due_date) < new Date())
+  ).length;
+  const activeServicesCount = clientRecurringServices.filter(service => service.status === 'active').length;
+  const totalInvoicesCount = clientInvoices.length;
+
   const getStatusBadge = (status: string) => {
     const statusMap = {
       active: { label: 'Ativo', className: 'bg-green-100 text-green-800' },
@@ -125,157 +138,120 @@ export default function ClientDetail() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
+      <div className="space-y-6 animate-in fade-in-0 duration-500">
+        {/* Botão Voltar */}
+        <div className="mb-8">
           <Button 
-            variant="outline" 
+            variant="ghost" 
             size="sm"
             onClick={() => currentOrganization && navigate(`/org/${currentOrganization.id}/clients`)}
+            className="text-muted-foreground hover:text-foreground hover:bg-gray-50 transition-colors mb-6"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
+            Voltar para clientes
           </Button>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold">{client.name}</h1>
-            <p className="text-muted-foreground">
-              Cliente desde {new Date(client.created_at).toLocaleDateString('pt-BR')}
-            </p>
+        </div>
+
+        {/* Header do Cliente */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-12 pb-6 border-b border-gray-100 animate-in slide-in-from-top-4 duration-700 delay-100">
+          <div className="flex items-center gap-4">
+            <ClientAvatar 
+              name={client.name} 
+              size="lg" 
+              status={client.status || 'active'} 
+              showStatus={true}
+            />
+            <div>
+              <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-2">{client.name}</h1>
+              <p className="text-base sm:text-lg text-muted-foreground font-medium">
+                Cliente desde {new Date(client.created_at).toLocaleDateString('pt-BR')}
+              </p>
+            </div>
           </div>
-          <Button onClick={handleEditClient}>
+          <Button onClick={handleEditClient} className="self-start sm:self-auto transition-all duration-200 hover:scale-105">
             <Edit className="h-4 w-4 mr-2" />
             Editar
           </Button>
         </div>
 
-        {/* Client Overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                Informações do Cliente
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{client.email}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span>{client.phone}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span>{client.document}</span>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
-                    <div>
-                      <div>{client.address}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {client.city} - {client.state}, {client.zip_code}
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <StatusBadge status="active" />
-                  </div>
-                </div>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 animate-in slide-in-from-bottom-4 duration-700 delay-200">
+          {/* Estatísticas */}
+          <div className="lg:col-span-2">
+            <ClientStats 
+              openInvoices={openInvoicesCount}
+              overdueInvoices={overdueInvoicesCount}
+              activeServices={activeServicesCount}
+              totalInvoices={totalInvoicesCount}
+            />
+          </div>
 
-            </CardContent>
-          </Card>
-
-          {/* Stats */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  <Money valueCents={totalRevenue} />
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Pendente</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  <Money valueCents={pendingAmount} />
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Serviços Ativos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">0</div>
-              </CardContent>
-            </Card>
+          {/* Informações de Contato */}
+          <div className="lg:col-span-1">
+            <ClientContactInfo 
+              client={{
+                name: client.name,
+                email: client.email,
+                phone: client.phone,
+                document: client.document,
+                address: client.address ? `${client.address}, ${client.city} - ${client.state}, ${client.zip_code}` : undefined,
+                status: client.status || 'active'
+              }} 
+            />
           </div>
         </div>
 
         {/* Seções */}
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in slide-in-from-bottom-6 duration-700 delay-300">
           {/* Serviços Recorrentes */}
-          <Card>
+          <Card className="transition-all duration-300 hover:shadow-lg">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Repeat className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+                  <Repeat className="h-6 w-6 text-blue-600" />
                   Serviços Recorrentes
                 </CardTitle>
-                <Button size="sm" variant="outline" onClick={() => setIsInvoiceModalOpen(true)}>
+                <Button size="sm" variant="outline" onClick={() => setIsInvoiceModalOpen(true)} className="transition-all duration-200 hover:scale-105">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
-              <Table>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Serviço</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Frequência</TableHead>
-                    <TableHead>Próxima Cobrança</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="font-semibold text-gray-700 py-4 px-6">Serviço</TableHead>
+                    <TableHead className="font-semibold text-gray-700 py-4 px-6">Valor</TableHead>
+                    <TableHead className="font-semibold text-gray-700 py-4 px-6">Frequência</TableHead>
+                    <TableHead className="font-semibold text-gray-700 py-4 px-6">Próxima Cobrança</TableHead>
+                    <TableHead className="font-semibold text-gray-700 py-4 px-6">Status</TableHead>
+                    <TableHead className="w-[50px] py-4 px-6"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {clientRecurringServices.length > 0 ? (
-                    clientRecurringServices.map((service) => (
-                      <TableRow key={service.id}>
-                        <TableCell>
-                          <div className="font-medium">{service.name}</div>
+                    clientRecurringServices.map((service, index) => (
+                      <TableRow key={service.id} className={`hover:bg-gray-50 transition-all duration-200 hover:scale-[1.01] ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
+                        <TableCell className="py-4 px-6">
+                          <div className="font-medium text-gray-900">{service.name}</div>
                           {service.description && (
-                            <div className="text-sm text-muted-foreground">{service.description}</div>
+                            <div className="text-sm text-gray-500 mt-1">{service.description}</div>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4 px-6 font-semibold">
                           <Money valueCents={service.amount} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4 px-6 text-gray-700">
                           {getFrequencyLabel(service.frequency)}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4 px-6 text-gray-700">
                           {new Date(service.next_billing_date).toLocaleDateString('pt-BR')}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4 px-6">
                           {getStatusBadge(service.status)}
                         </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm">
+                        <TableCell className="py-4 px-6">
+                          <Button variant="ghost" size="sm" className="hover:bg-gray-100 transition-all duration-200 hover:scale-110">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </TableCell>
@@ -283,71 +259,76 @@ export default function ClientDetail() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        Nenhum serviço recorrente cadastrado.
+                      <TableCell colSpan={6} className="text-center py-12 text-gray-500 bg-gray-50">
+                        <div className="flex flex-col items-center gap-2">
+                          <Repeat className="h-8 w-8 text-gray-300" />
+                          <span>Nenhum serviço recorrente cadastrado.</span>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
-              </Table>
+                </Table>
+              </div>
             </CardContent>
           </Card>
 
           {/* Serviços Pontuais */}
-          <Card>
+          <Card className="transition-all duration-300 hover:shadow-lg">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+                  <FileText className="h-6 w-6 text-green-600" />
                   Serviços Pontuais
                 </CardTitle>
-                <Button size="sm" variant="outline" onClick={() => setIsInvoiceModalOpen(true)}>
+                <Button size="sm" variant="outline" onClick={() => setIsInvoiceModalOpen(true)} className="transition-all duration-200 hover:scale-105">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
-              <Table>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Serviço</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Data de Execução</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Data de Pagamento</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="font-semibold text-gray-700 py-4 px-6">Serviço</TableHead>
+                    <TableHead className="font-semibold text-gray-700 py-4 px-6">Valor</TableHead>
+                    <TableHead className="font-semibold text-gray-700 py-4 px-6">Data de Execução</TableHead>
+                    <TableHead className="font-semibold text-gray-700 py-4 px-6">Status</TableHead>
+                    <TableHead className="font-semibold text-gray-700 py-4 px-6">Data de Pagamento</TableHead>
+                    <TableHead className="w-[50px] py-4 px-6"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {clientOneTimeServices.length > 0 ? (
-                    clientOneTimeServices.map((service) => (
-                      <TableRow key={service.id}>
-                        <TableCell>
-                          <div className="font-medium">{service.name}</div>
+                    clientOneTimeServices.map((service, index) => (
+                      <TableRow key={service.id} className={`hover:bg-gray-50 transition-all duration-200 hover:scale-[1.01] ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
+                        <TableCell className="py-4 px-6">
+                          <div className="font-medium text-gray-900">{service.name}</div>
                           {service.description && (
-                            <div className="text-sm text-muted-foreground">{service.description}</div>
+                            <div className="text-sm text-gray-500 mt-1">{service.description}</div>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4 px-6 font-semibold">
                           <Money valueCents={service.amount} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4 px-6 text-gray-700">
                           {new Date(service.execution_date).toLocaleDateString('pt-BR')}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4 px-6">
                           {getStatusBadge(service.status)}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4 px-6 text-gray-700">
                           {service.payment_date ? (
                             <div className="text-sm">
                               {new Date(service.payment_date).toLocaleDateString('pt-BR')}
                             </div>
                           ) : (
-                            <div className="text-sm text-muted-foreground">-</div>
+                            <div className="text-sm text-gray-400">-</div>
                           )}
                         </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm">
+                        <TableCell className="py-4 px-6">
+                          <Button variant="ghost" size="sm" className="hover:bg-gray-100 transition-all duration-200 hover:scale-110">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </TableCell>
@@ -355,90 +336,95 @@ export default function ClientDetail() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        Nenhum serviço pontual cadastrado.
+                      <TableCell colSpan={6} className="text-center py-12 text-gray-500 bg-gray-50">
+                        <div className="flex flex-col items-center gap-2">
+                          <FileText className="h-8 w-8 text-gray-300" />
+                          <span>Nenhum serviço pontual cadastrado.</span>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
-              </Table>
+                </Table>
+              </div>
             </CardContent>
           </Card>
 
           {/* Histórico de Cobranças */}
-            <Card>
+            <Card className="transition-all duration-300 hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
+                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+                    <FileText className="h-6 w-6 text-purple-600" />
                     Histórico de Cobranças
                   </CardTitle>
-                  <Button size="sm" variant="outline" onClick={handleNewInvoice}>
+                  <Button size="sm" variant="outline" onClick={handleNewInvoice} className="transition-all duration-200 hover:scale-105">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <Table>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Cobrança</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Vencimento</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Pagamento</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
+                    <TableRow className="bg-gray-50 hover:bg-gray-50">
+                      <TableHead className="font-semibold text-gray-700 py-4 px-6">Cobrança</TableHead>
+                      <TableHead className="font-semibold text-gray-700 py-4 px-6">Valor</TableHead>
+                      <TableHead className="font-semibold text-gray-700 py-4 px-6">Vencimento</TableHead>
+                      <TableHead className="font-semibold text-gray-700 py-4 px-6">Status</TableHead>
+                      <TableHead className="font-semibold text-gray-700 py-4 px-6">Pagamento</TableHead>
+                      <TableHead className="w-[50px] py-4 px-6"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {clientInvoices.length > 0 ? (
-                      clientInvoices.map((invoice) => (
+                      clientInvoices.map((invoice, index) => (
                         <TableRow 
                           key={invoice.id} 
-                          className="cursor-pointer hover:bg-muted/50"
+                          className={`cursor-pointer hover:bg-blue-50 transition-all duration-200 hover:scale-[1.01] ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}
                           onClick={() => handleInvoiceClick(invoice.id)}
                         >
-                          <TableCell>
-                            <div className="font-medium">{invoice.title || invoice.notes || 'Cobrança'}</div>
-                            <div className="text-sm text-muted-foreground">
+                          <TableCell className="py-4 px-6">
+                            <div className="font-medium text-gray-900">{invoice.title || invoice.notes || 'Cobrança'}</div>
+                            <div className="text-sm text-gray-500 mt-1">
                               {new Date(invoice.issue_date).toLocaleDateString('pt-BR')}
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-4 px-6 font-semibold">
                             <Money valueCents={invoice.total_amount * 100} />
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-4 px-6 text-gray-700">
                             {new Date(invoice.due_date).toLocaleDateString('pt-BR')}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-4 px-6">
                             <StatusBadge status={invoice.status} />
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-4 px-6 text-gray-700">
                             {invoice.paid_at ? (
-                              <div className="text-sm text-success">
+                              <div className="text-sm text-green-600 font-medium">
                                 Pago em {new Date(invoice.paid_at).toLocaleDateString('pt-BR')}
                               </div>
                             ) : (
-                              <div className="text-sm text-muted-foreground">-</div>
+                              <div className="text-sm text-gray-400">-</div>
                             )}
                           </TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
+                          <TableCell className="py-4 px-6">
+                            <Button variant="ghost" size="sm" className="hover:bg-gray-100 transition-all duration-200 hover:scale-110">
+                               <MoreHorizontal className="h-4 w-4" />
+                             </Button>
                           </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-12">
-                          <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                            <FileText className="h-12 w-12" />
-                            <div className="text-lg font-medium">Quando você criar uma cobrança ela irá aparecer aqui!</div>
-                            <p className="text-sm">Este cliente ainda não possui cobranças. Crie a primeira cobrança para começar.</p>
+                        <TableCell colSpan={6} className="text-center py-16 bg-gray-50">
+                          <div className="flex flex-col items-center gap-4 text-gray-500">
+                            <FileText className="h-16 w-16 text-gray-300" />
+                            <div className="text-xl font-semibold text-gray-700">Quando você criar uma cobrança ela irá aparecer aqui!</div>
+                            <p className="text-sm text-gray-500 max-w-md">Este cliente ainda não possui cobranças. Crie a primeira cobrança para começar.</p>
                             <Button 
                               onClick={handleNewInvoice}
-                              className="mt-2"
+                              className="mt-4 bg-purple-600 hover:bg-purple-700"
                             >
                               <Plus className="h-4 w-4 mr-2" />
                               Nova Cobrança
@@ -448,7 +434,8 @@ export default function ClientDetail() {
                       </TableRow>
                     )}
                   </TableBody>
-                </Table>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
         </div>

@@ -27,14 +27,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ExpenseTableSkeleton } from "@/components/ui/table-skeleton";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Plus, Receipt, Calendar, CreditCard, Edit, Trash2, DollarSign, TrendingUp, Clock, CheckCircle, Check } from "lucide-react";
 
 const Expenses = () => {
   const { currentOrganization } = useAuth();
   const organizationId = currentOrganization?.id;
-  const { expensesList, createExpense, updateExpense, deleteExpense, offlineQueueCount, syncOfflineExpenses, loading } = useExpenses(organizationId);
+  const { expensesList, createExpense, updateExpense, deleteExpense, offlineQueueCount, syncOfflineExpenses, loading, filterByStatus } = useExpenses(organizationId);
   const { expenseCategories } = useCategories(organizationId);
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
 
   const [expenseStats, setExpenseStats] = useState({
     currentMonthTotal: 0,
@@ -116,10 +118,48 @@ const Expenses = () => {
     calculateStats();
   }, [expensesList]);
 
+  // Processar filtros da URL
+  useEffect(() => {
+    const filter = searchParams.get('filter');
+    if (filter === 'overdue' && filterByStatus) {
+      filterByStatus('overdue');
+    } else if (filter === 'pending' && filterByStatus) {
+      filterByStatus('pending');
+    } else if (filter === 'paid' && filterByStatus) {
+      filterByStatus('paid');
+    }
+  }, [searchParams, filterByStatus]);
+
   // Função para buscar o nome da categoria
   const getCategoryName = (categoryId: string) => {
     const category = expenseCategories.find(cat => cat.id === categoryId);
     return category ? category.name : 'Categoria não encontrada';
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'Pendente';
+      case 'paid':
+        return 'Pago';
+      case 'overdue':
+        return 'Atrasado';
+      default:
+        return status;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'paid':
+        return 'bg-green-100 text-green-800';
+      case 'overdue':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   const handleOpenDialog = () => {
@@ -243,7 +283,7 @@ const Expenses = () => {
       organization_id: organizationId,
       expense_date: formData.expense_date,
       payment_method: formData.payment_method as 'credit_card' | 'debit_card' | 'cash' | 'pix' | 'bank_transfer',
-      status: formData.status as 'pending' | 'paid' | 'cancelled',
+      status: formData.status as 'pending' | 'paid' | 'overdue',
       is_recurring: formData.is_recurring,
       recurring_frequency: formData.is_recurring ? formData.recurring_frequency as 'monthly' | 'quarterly' | 'yearly' : undefined,
       recurring_start_date: formData.is_recurring && formData.recurring_start_date ? formData.recurring_start_date : undefined,
@@ -418,7 +458,11 @@ const Expenses = () => {
                       </TableCell>
                       <TableCell>R$ {expense.amount.toFixed(2)}</TableCell>
                       <TableCell>{new Date(expense.expense_date).toLocaleDateString()}</TableCell>
-                      <TableCell>{expense.status}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(expense.status)}`}>
+                          {getStatusLabel(expense.status)}
+                        </span>
+                      </TableCell>
                       <TableCell>
                         {expense.is_recurring ? (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -583,7 +627,7 @@ const Expenses = () => {
                     <SelectContent>
                       <SelectItem value="pending">Pendente</SelectItem>
                       <SelectItem value="paid">Pago</SelectItem>
-                      <SelectItem value="cancelled">Cancelado</SelectItem>
+                      <SelectItem value="overdue">Atrasado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

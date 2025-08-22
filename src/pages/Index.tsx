@@ -11,7 +11,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
-  Receipt
+  Receipt,
+  AlertTriangle
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -23,13 +24,15 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { KpiCardSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMemo } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { currentOrganization } = useAuth();
+  const { user, currentOrganization } = useAuth();
+  const { toast } = useToast();
   const { invoices, loading: invoicesLoading } = useInvoices();
   const { clients, loading: clientsLoading } = useClients();
-  const { expensesList, loading: expensesLoading } = useExpenses(currentOrganization?.id);
+  const { expensesList, loading: expensesLoading, updateExpense } = useExpenses(currentOrganization?.id);
   
   const isLoading = invoicesLoading || clientsLoading || expensesLoading;
 
@@ -57,12 +60,13 @@ const Index = () => {
       despesas: totalDespesas,
       saldo: totalRecebido - totalDespesas
     };
-  }, [invoices, expensesList, currentOrganization]);
+  }, [invoices, expensesList]);
 
   const alerts = useMemo(() => {
     const today = new Date();
     const overdueInvoices = invoices.filter(inv => 
-      inv.status === 'overdue'
+      inv.status === 'overdue' || 
+      (inv.status === 'sent' && new Date(inv.due_date) < today)
     );
     const dueTodayInvoices = invoices.filter(inv => 
       inv.status === 'sent' && 
@@ -74,58 +78,74 @@ const Index = () => {
     const pendingExpenses = expensesList.filter(exp => 
       exp.status === 'pending'
     );
+    const overdueExpenses = expensesList.filter(exp => 
+      exp.status === 'overdue'
+    );
 
     const alertsList = [];
     
-    if (overdueInvoices.length > 0) {
-      const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + (inv.total_amount * 100), 0);
+    // Criar um card individual para cada fatura atrasada (clientes inadimplentes)
+    overdueInvoices.forEach((invoice, index) => {
+      const clientName = clientsMap[invoice.client_id]?.name || 'Cliente não encontrado';
       alertsList.push({
-        id: 1,
-        type: 'overdue',
-        title: 'Cobranças em atraso',
-        description: `${overdueInvoices.length} cobranças vencidas`,
-        amount: overdueAmount,
+        id: `overdue-invoice-${invoice.id}`,
+        type: 'overdue-invoice',
+        title: clientName,
+        description: `Vencimento: ${new Date(invoice.due_date).toLocaleDateString('pt-BR')}`,
+        amount: invoice.total_amount * 100,
         urgent: true,
-        action: () => navigate('/invoices?filter=overdue')
+        invoice: invoice,
+        action: () => navigate(`/invoices/${invoice.id}`)
       });
-    }
-
-    if (dueTodayInvoices.length > 0) {
-      const dueTodayAmount = dueTodayInvoices.reduce((sum, inv) => sum + (inv.total_amount * 100), 0);
+    });
+    
+    // Criar um card individual para cada despesa atrasada
+    overdueExpenses.forEach((expense, index) => {
       alertsList.push({
-        id: 2,
-        type: 'due-today',
-        title: 'Vencimento hoje',
-        description: `${dueTodayInvoices.length} cobranças vencem hoje`,
-        amount: dueTodayAmount,
-        urgent: false,
-        action: () => navigate('/invoices?filter=due-today')
+        id: `overdue-expense-${expense.id}`,
+        type: 'overdue-expense',
+        title: expense.description || 'Despesa sem descrição',
+        description: `Data: ${new Date(expense.expense_date).toLocaleDateString('pt-BR')}`,
+        amount: expense.amount * 100,
+        urgent: true,
+        expense: expense,
+        action: () => navigate('/expenses')
       });
-    }
+    });
 
-    if (pendingInvoices.length > 0) {
-      const pendingAmount = pendingInvoices.reduce((sum, inv) => sum + (inv.total_amount * 100), 0);
+    // Card unificado para outros itens pendentes (cobranças)
+    const totalPendingInvoices = pendingInvoices.length + dueTodayInvoices.length;
+    if (totalPendingInvoices > 0) {
+      const totalPendingAmount = 
+        pendingInvoices.reduce((sum, inv) => sum + (inv.total_amount * 100), 0) +
+        dueTodayInvoices.reduce((sum, inv) => sum + (inv.total_amount * 100), 0);
+      
+      const pendingDetails = [];
+      if (dueTodayInvoices.length > 0) pendingDetails.push(`${dueTodayInvoices.length} vencem hoje`);
+      if (pendingInvoices.length > 0) pendingDetails.push(`${pendingInvoices.length} cobranças pendentes`);
+      
       alertsList.push({
-        id: 3,
+        id: 'pending-invoices-unified',
         type: 'pending-invoices',
-        title: 'Cobranças pendentes',
-        description: `${pendingInvoices.length} cobranças aguardando envio/pagamento`,
-        amount: pendingAmount,
+        title: 'Cobranças Pendentes',
+        description: pendingDetails.join(', '),
+        amount: totalPendingAmount,
         urgent: false,
-        action: () => navigate('/invoices?filter=pending')
+        action: () => navigate('/invoices')
       });
     }
 
+    // Card unificado para despesas pendentes
     if (pendingExpenses.length > 0) {
-      const expensesAmount = pendingExpenses.reduce((sum, exp) => sum + (exp.amount * 100), 0);
+      const pendingExpensesAmount = pendingExpenses.reduce((sum, exp) => sum + (exp.amount * 100), 0);
       alertsList.push({
-        id: 4,
+        id: 'pending-expenses-unified',
         type: 'pending-expenses',
-        title: 'Despesas pendentes',
+        title: 'Despesas Pendentes',
         description: `${pendingExpenses.length} despesas aguardando pagamento`,
-        amount: expensesAmount,
+        amount: pendingExpensesAmount,
         urgent: false,
-        action: () => navigate('/expenses?filter=pending')
+        action: () => navigate('/expenses')
       });
     }
 
@@ -160,6 +180,135 @@ const Index = () => {
     navigate(`/invoices/${invoiceId}`);
   };
 
+  // Função temporária para testar atualização de despesas vencidas
+  const handleUpdateOverdueExpenses = async () => {
+    console.log('🔄 Iniciando atualização de despesas vencidas...');
+    try {
+      const { expenses } = await import('@/lib/supabase');
+      console.log('📦 Módulo supabase importado com sucesso');
+      
+      const result = await expenses.updateOverdueExpenses();
+      console.log('📊 Resultado da atualização:', result);
+      
+      if (result.error) {
+        console.error('❌ Erro na atualização:', result.error);
+        toast({
+          title: 'Erro ao atualizar despesas',
+          description: result.error.message,
+          variant: 'destructive'
+        });
+      } else {
+        console.log('✅ Atualização bem-sucedida:', result.data);
+        toast({
+          title: 'Despesas atualizadas',
+          description: `${result.data?.[0]?.updated_count || 0} despesas foram marcadas como atrasadas`,
+        });
+        // Recarregar a página para ver as mudanças
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch (error) {
+      console.error('💥 Exceção na atualização:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao executar atualização de despesas vencidas',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleDebugExpenses = async () => {
+    try {
+      console.log('=== DEBUG DESPESAS ===');
+      console.log('Total de despesas carregadas:', expensesList.length);
+      console.log('Despesas por status:');
+      const statusCount = expensesList.reduce((acc, exp) => {
+        acc[exp.status] = (acc[exp.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log(statusCount);
+      
+      console.log('Despesas overdue encontradas:');
+      const overdueExpenses = expensesList.filter(exp => exp.status === 'overdue');
+      console.log(overdueExpenses);
+      
+      console.log('Alertas gerados:', alerts.length);
+      console.log('Alertas:', alerts);
+      
+      toast({
+        title: 'Debug',
+        description: `${expensesList.length} despesas total, ${overdueExpenses.length} overdue, ${alerts.length} alertas. Veja o console.`,
+        variant: 'default'
+      });
+    } catch (error) {
+      console.error('Erro no debug:', error);
+    }
+  };
+
+  // Função temporária para criar despesas de teste com datas passadas
+  const handleCreateTestExpenses = async () => {
+    if (!user) return;
+    
+    try {
+      const { expenses } = await import('@/lib/supabase');
+      
+      // Criar 3 despesas com datas passadas
+      const testExpenses = [
+        {
+          title: 'Aluguel - Janeiro',
+          description: 'Despesa de teste - aluguel do escritório',
+          amount: 2500,
+          organization_id: user.id,
+          expense_date: '2024-01-15', // Data passada
+          payment_method: 'bank_transfer',
+          status: 'overdue' as const
+        },
+        {
+          title: 'Energia Elétrica - Dezembro',
+          description: 'Despesa de teste - conta de luz',
+          amount: 450,
+          organization_id: user.id,
+          expense_date: '2023-12-20', // Data passada
+          payment_method: 'debit_card',
+          status: 'overdue' as const
+        },
+        {
+          title: 'Internet - Novembro',
+          description: 'Despesa de teste - conta de internet',
+          amount: 120,
+          organization_id: user.id,
+          expense_date: '2023-11-10', // Data passada
+          payment_method: 'credit_card',
+          status: 'overdue' as const
+        }
+      ];
+
+      let createdCount = 0;
+      for (const expense of testExpenses) {
+        const result = await expenses.create(expense);
+        if (!result.error) {
+          createdCount++;
+        } else if (result.error) {
+          console.error('Erro ao criar despesa:', result.error);
+        }
+      }
+
+      toast({
+        title: 'Despesas de teste criadas',
+        description: `${createdCount} despesas com datas passadas foram criadas para teste`,
+      });
+      
+      // Aguardar um pouco e recarregar
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      console.error('Erro geral:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao criar despesas de teste',
+        variant: 'destructive'
+      });
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
@@ -169,6 +318,7 @@ const Index = () => {
             <h1 className="text-3xl font-bold text-foreground">Dashboard Financeiro</h1>
             <p className="text-muted-foreground">Visão geral da sua agência no mês {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</p>
           </div>
+
         </div>
 
         {/* KPI Cards */}
@@ -261,25 +411,116 @@ const Index = () => {
                 </div>
               ) : (
                 alerts.map((alert) => (
-                  <div key={alert.id} className="flex items-center justify-between p-4 rounded-lg border bg-card">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-full ${alert.urgent ? 'bg-danger-muted' : 'bg-warning-muted'}`}>
-                        {alert.type === 'pending-expenses' ? (
-                          <Receipt className={`h-4 w-4 ${alert.urgent ? 'text-danger' : 'text-warning'}`} />
-                        ) : (
-                          <AlertCircle className={`h-4 w-4 ${alert.urgent ? 'text-danger' : 'text-warning'}`} />
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{alert.title}</h4>
-                        <p className="text-sm text-muted-foreground">{alert.description}</p>
-                      </div>
+                  <div 
+                    key={alert.id} 
+                    className={`flex items-center gap-3 p-4 rounded-lg border hover:shadow-md transition-all ${
+                      alert.urgent 
+                        ? 'border-red-200 bg-red-50 hover:bg-red-100' 
+                        : 'border-amber-200 bg-amber-50 hover:bg-amber-100'
+                    } ${
+                      alert.type !== 'overdue-expense' ? 'cursor-pointer' : ''
+                    }`}
+                    onClick={alert.type !== 'overdue-expense' ? alert.action : undefined}
+                  >
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                      alert.urgent 
+                        ? 'bg-red-100 text-red-600' 
+                        : 'bg-amber-100 text-amber-600'
+                    }`}>
+                      {alert.type.includes('expenses') ? (
+                        <Receipt className="h-5 w-5" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5" />
+                      )}
                     </div>
-                    <div className="text-right">
-                      <Money valueCents={alert.amount} className="font-medium" />
-                      <Button size="sm" variant="outline" className="mt-2" onClick={alert.action}>
-                        Ver Detalhes
-                      </Button>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 mb-1">{alert.title}</h4>
+                      <p className="text-sm text-gray-600">{alert.description}</p>
+                      {alert.details && (
+                        <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                          {alert.details.invoices > 0 && <span>📄 {alert.details.invoices} cobranças</span>}
+                          {alert.details.expenses > 0 && <span>🧾 {alert.details.expenses} despesas</span>}
+                          {alert.details.dueToday > 0 && <span>⏰ {alert.details.dueToday} hoje</span>}
+                          {alert.details.pendingInvoices > 0 && <span>📄 {alert.details.pendingInvoices} pendentes</span>}
+                          {alert.details.pendingExpenses > 0 && <span>🧾 {alert.details.pendingExpenses} pendentes</span>}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right flex items-center gap-3">
+                      <div>
+                        <Money 
+                          valueCents={alert.amount} 
+                          className={`text-lg font-bold ${
+                            alert.urgent ? 'text-red-700' : 'text-amber-700'
+                          }`} 
+                        />
+                        <p className="text-xs text-gray-500">Total</p>
+                      </div>
+                      
+                      {/* Botões de ação para faturas atrasadas */}
+                      {alert.type === 'overdue-invoice' && (
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/invoices/${alert.invoice.id}`);
+                            }}
+                            className="p-2 rounded-full bg-blue-100 hover:bg-blue-200 transition-colors duration-200"
+                            title="Ver detalhes da fatura"
+                          >
+                            <Receipt className="h-4 w-4 text-blue-600" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Aqui você pode adicionar a lógica para marcar como pago
+                              console.log('Marcar fatura como paga:', alert.invoice.id);
+                            }}
+                            className="p-2 rounded-full bg-green-100 hover:bg-green-200 transition-colors duration-200"
+                            title="Marcar como pago"
+                          >
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </button>
+                        </div>
+                      )}
+                      
+                      {/* Botões de ação para despesas atrasadas */}
+                      {alert.type === 'overdue-expense' && (
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate('/expenses');
+                            }}
+                            className="p-2 rounded-full bg-blue-100 hover:bg-blue-200 transition-colors duration-200"
+                            title="Ver mais detalhes"
+                          >
+                            <Receipt className="h-4 w-4 text-blue-600" />
+                          </button>
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                await updateExpense(alert.expense.id, { status: 'paid' });
+                                toast({
+                                  title: 'Despesa marcada como paga',
+                                  description: `A despesa "${alert.expense.title}" foi marcada como paga.`,
+                                });
+                              } catch (error) {
+                                toast({
+                                  title: 'Erro ao marcar despesa como paga',
+                                  description: 'Tente novamente mais tarde.',
+                                  variant: 'destructive',
+                                });
+                              }
+                            }}
+                            className="p-2 rounded-full bg-green-100 hover:bg-green-200 transition-colors duration-200"
+                            title="Marcar como pago"
+                          >
+                            <DollarSign className="h-4 w-4 text-green-600" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))

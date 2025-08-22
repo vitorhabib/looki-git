@@ -130,7 +130,7 @@ export function ExpenseModal({ open, onOpenChange, expense, onSuccess }: Expense
       organization_id: organizationId,
       expense_date: formData.expense_date,
       payment_method: formData.payment_method as 'credit_card' | 'debit_card' | 'cash' | 'pix' | 'bank_transfer',
-      status: formData.status as 'pending' | 'paid' | 'cancelled',
+      status: formData.status as 'pending' | 'paid' | 'overdue',
       is_recurring: formData.is_recurring,
       recurring_frequency: formData.is_recurring ? formData.recurring_frequency as 'monthly' | 'quarterly' | 'yearly' : undefined,
       recurring_start_date: formData.is_recurring && formData.recurring_start_date ? formData.recurring_start_date : undefined,
@@ -267,7 +267,7 @@ export function ExpenseModal({ open, onOpenChange, expense, onSuccess }: Expense
                 <SelectContent>
                   <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="paid">Pago</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                  <SelectItem value="overdue">Atrasado</SelectItem>
                 </SelectContent>
               </Select>
             </div>

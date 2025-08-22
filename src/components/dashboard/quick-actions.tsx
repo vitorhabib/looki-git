@@ -6,7 +6,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useClients } from "@/hooks/useClients";
-import { useEffect, useState } from "react";
+import { useInvoices } from "@/hooks/useInvoices";
+import { useEffect, useState, useMemo } from "react";
 
 
 interface DefaulterClient {
@@ -18,24 +19,43 @@ interface DefaulterClient {
 
 export function QuickActions() {
   const navigate = useNavigate();
-  const { clients, loading } = useClients();
+  const { clients, loading: clientsLoading } = useClients();
+  const { invoices, loading: invoicesLoading } = useInvoices();
   const [defaulterClients, setDefaulterClients] = useState<DefaulterClient[]>([]);
 
-  useEffect(() => {
-    if (!clients.length) return;
-
-    // Filtrar apenas clientes com status 'defaulter'
-    const clientsWithDefaulterStatus = clients
-      .filter(client => client.status === 'defaulter')
-      .map(client => ({
-        id: client.id,
-        name: client.name,
-        email: client.email,
-        phone: client.phone
-      }));
-
-    setDefaulterClients(clientsWithDefaulterStatus);
+  const clientsMap = useMemo(() => {
+    return clients.reduce((acc, client) => {
+      acc[client.id] = client;
+      return acc;
+    }, {} as Record<string, any>);
   }, [clients]);
+
+  useEffect(() => {
+    if (!clients.length || !invoices.length) return;
+
+    const today = new Date();
+    const overdueInvoices = invoices.filter(inv => 
+      inv.status === 'overdue' || 
+      (inv.status === 'sent' && new Date(inv.due_date) < today)
+    );
+
+    // Agrupar faturas atrasadas por cliente
+    const clientsWithOverdueInvoices = new Map<string, any>();
+    
+    overdueInvoices.forEach(invoice => {
+      const client = clientsMap[invoice.client_id];
+      if (client && !clientsWithOverdueInvoices.has(client.id)) {
+        clientsWithOverdueInvoices.set(client.id, {
+          id: client.id,
+          name: client.name,
+          email: client.email,
+          phone: client.phone
+        });
+      }
+    });
+
+    setDefaulterClients(Array.from(clientsWithOverdueInvoices.values()));
+  }, [clients, invoices, clientsMap]);
 
   const handleClientClick = (clientId: string) => {
     navigate(`/clients/${clientId}`);
@@ -48,7 +68,7 @@ export function QuickActions() {
     }).format(amount);
   };
 
-  if (loading) {
+  if (clientsLoading || invoicesLoading) {
     return (
       <Card>
         <CardHeader>
@@ -108,16 +128,7 @@ export function QuickActions() {
                         Inadimplente
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <span>{client.email}</span>
-                      </div>
-                      {client.phone && (
-                        <div className="flex items-center gap-1">
-                          <span>{client.phone}</span>
-                        </div>
-                      )}
-                    </div>
+
                   </div>
                 </div>
               </div>
